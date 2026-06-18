@@ -1,0 +1,390 @@
+Project "Sistema de Gestion de Eventos Infantiles - Family Park" {
+  database_type: "MySQL"
+  Note: "MER para gestionar solicitudes, reservas, eventos, kits, locales, minutas, insumos, recursos, personal, tareas y seguimiento operativo."
+}
+
+Enum estado_solicitud {
+  pendiente
+  aprobada
+  rechazada
+  modificada
+  cancelada
+}
+
+Enum estado_evento {
+  reservado
+  en_planificacion
+  confirmado
+  en_ejecucion
+  finalizado
+  cancelado
+}
+
+Enum estado_tarea {
+  pendiente
+  en_proceso
+  lista
+  con_problema
+  cancelada
+}
+
+Enum tipo_usuario {
+  administrador
+  coordinador
+  cliente
+  personal_limpieza
+  monitor_infantil
+  personal_alimentos
+}
+
+Enum tipo_insumo {
+  alimento
+  bebida
+  material
+  decoracion
+  limpieza
+  otro
+}
+
+Enum tipo_recurso {
+  espacio
+  mobiliario
+  juego
+  decoracion
+  equipo
+  material
+  otro
+}
+
+Table roles {
+  id_rol int [pk, increment]
+  nombre varchar(50) [not null, unique]
+  descripcion varchar(255)
+}
+
+Table usuarios {
+  id_usuario int [pk, increment]
+  id_rol int [not null]
+  nombre varchar(80) [not null]
+  apellido varchar(80) [not null]
+  correo varchar(120) [not null, unique]
+  contrasena_hash varchar(255) [not null]
+  telefono varchar(20)
+  tipo_usuario tipo_usuario [not null]
+  activo boolean [not null, default: true]
+  creado_en datetime [not null]
+}
+
+Table clientes {
+  id_cliente int [pk, increment]
+  nombre varchar(80) [not null]
+  apellido varchar(80) [not null]
+  rut varchar(15) [unique]
+  correo varchar(120) [not null]
+  telefono varchar(20) [not null]
+  direccion varchar(255)
+  creado_en datetime [not null]
+}
+
+Table establecimientos {
+  id_establecimiento int [pk, increment]
+  nombre varchar(120) [not null]
+  ciudad varchar(80) [not null]
+  direccion varchar(255) [not null]
+  telefono varchar(20)
+  correo varchar(120)
+  capacidad_maxima int [not null]
+  activo boolean [not null, default: true]
+}
+
+Table salas {
+  id_sala int [pk, increment]
+  id_establecimiento int [not null]
+  nombre varchar(100) [not null]
+  tipo_sala varchar(80)
+  capacidad_maxima int [not null]
+  descripcion varchar(255)
+  activa boolean [not null, default: true]
+}
+
+Table horarios_disponibles {
+  id_horario int [pk, increment]
+  id_establecimiento int [not null]
+  dia_semana varchar(20) [not null]
+  hora_inicio time [not null]
+  hora_fin time [not null]
+  activo boolean [not null, default: true]
+}
+
+Table kits_servicio {
+  id_kit int [pk, increment]
+  nombre varchar(100) [not null]
+  descripcion varchar(255)
+  precio_base decimal(10,2) [not null]
+  precio_por_nino decimal(10,2) [not null]
+  duracion_minutos int [not null]
+  minimo_ninos int [not null]
+  maximo_ninos int
+  activo boolean [not null, default: true]
+}
+
+Table servicios {
+  id_servicio int [pk, increment]
+  nombre varchar(100) [not null]
+  descripcion varchar(255)
+  precio decimal(10,2) [not null, default: 0]
+  activo boolean [not null, default: true]
+}
+
+Table kit_servicios {
+  id_kit_servicio int [pk, increment]
+  id_kit int [not null]
+  id_servicio int [not null]
+  incluido boolean [not null, default: true]
+  cantidad int [not null, default: 1]
+
+  indexes {
+    (id_kit, id_servicio) [unique]
+  }
+}
+
+Table solicitudes_evento {
+  id_solicitud int [pk, increment]
+  id_cliente int [not null]
+  id_establecimiento int [not null]
+  id_sala int
+  id_kit int [not null]
+  fecha_solicitada date [not null]
+  hora_inicio time [not null]
+  hora_fin time [not null]
+  cantidad_ninos int [not null]
+  cantidad_adultos int [not null, default: 0]
+  nombre_cumpleanero varchar(100)
+  edad_cumpleanero int
+  requerimientos_especiales text
+  estado estado_solicitud [not null, default: "pendiente"]
+  fecha_solicitud datetime [not null]
+  observacion_admin text
+}
+
+Table eventos {
+  id_evento int [pk, increment]
+  id_solicitud int [not null, unique]
+  id_cliente int [not null]
+  id_establecimiento int [not null]
+  id_sala int [not null]
+  id_kit int [not null]
+  id_coordinador int
+  fecha_evento date [not null]
+  hora_inicio time [not null]
+  hora_fin time [not null]
+  cantidad_ninos int [not null]
+  cantidad_adultos int [not null, default: 0]
+  estado estado_evento [not null, default: "reservado"]
+  observaciones text
+  creado_en datetime [not null]
+  actualizado_en datetime
+}
+
+Table personal {
+  id_personal int [pk, increment]
+  id_usuario int [not null, unique]
+  cargo varchar(80) [not null]
+  especialidad varchar(80)
+  disponibilidad varchar(80)
+  activo boolean [not null, default: true]
+}
+
+Table asignaciones_personal {
+  id_asignacion int [pk, increment]
+  id_evento int [not null]
+  id_personal int [not null]
+  rol_en_evento varchar(80) [not null]
+  hora_inicio time
+  hora_fin time
+  estado varchar(50) [not null, default: "asignado"]
+  observacion varchar(255)
+
+  indexes {
+    (id_evento, id_personal) [unique]
+  }
+}
+
+Table tareas_evento {
+  id_tarea int [pk, increment]
+  id_evento int [not null]
+  id_asignacion int
+  titulo varchar(120) [not null]
+  descripcion text
+  area varchar(80)
+  estado estado_tarea [not null, default: "pendiente"]
+  fecha_limite datetime
+  completada_en datetime
+}
+
+Table recursos {
+  id_recurso int [pk, increment]
+  nombre varchar(120) [not null]
+  tipo tipo_recurso [not null]
+  descripcion varchar(255)
+  unidad_medida varchar(30)
+  stock_disponible decimal(10,2) [not null, default: 0]
+  activo boolean [not null, default: true]
+}
+
+Table evento_recursos {
+  id_evento_recurso int [pk, increment]
+  id_evento int [not null]
+  id_recurso int [not null]
+  cantidad_requerida decimal(10,2) [not null]
+  cantidad_asignada decimal(10,2) [not null, default: 0]
+  observacion varchar(255)
+
+  indexes {
+    (id_evento, id_recurso) [unique]
+  }
+}
+
+Table insumos {
+  id_insumo int [pk, increment]
+  nombre varchar(120) [not null]
+  tipo tipo_insumo [not null]
+  unidad_medida varchar(30) [not null]
+  stock_disponible decimal(10,2) [not null, default: 0]
+  stock_minimo decimal(10,2) [not null, default: 0]
+  activo boolean [not null, default: true]
+}
+
+Table reglas_calculo_insumos {
+  id_regla int [pk, increment]
+  id_kit int [not null]
+  id_insumo int [not null]
+  cantidad_por_nino decimal(10,3) [not null, default: 0]
+  cantidad_por_adulto decimal(10,3) [not null, default: 0]
+  cantidad_fija decimal(10,3) [not null, default: 0]
+  observacion varchar(255)
+
+  indexes {
+    (id_kit, id_insumo) [unique]
+  }
+}
+
+Table minutas {
+  id_minuta int [pk, increment]
+  id_evento int [not null, unique]
+  generada_por int [not null]
+  fecha_generacion datetime [not null]
+  resumen text
+  total_ninos int [not null]
+  total_adultos int [not null]
+  estado_revision varchar(50) [not null, default: "pendiente"]
+  observaciones text
+}
+
+Table minuta_insumos {
+  id_minuta_insumo int [pk, increment]
+  id_minuta int [not null]
+  id_insumo int [not null]
+  cantidad_calculada decimal(10,2) [not null]
+  cantidad_confirmada decimal(10,2)
+  observacion varchar(255)
+
+  indexes {
+    (id_minuta, id_insumo) [unique]
+  }
+}
+
+Table bitacoras_evento {
+  id_bitacora int [pk, increment]
+  id_evento int [not null]
+  id_usuario int [not null]
+  fecha_registro datetime [not null]
+  titulo varchar(120) [not null]
+  descripcion text [not null]
+  tipo_registro varchar(60)
+}
+
+Table reportes_problema {
+  id_reporte int [pk, increment]
+  id_evento int [not null]
+  id_usuario_reporta int [not null]
+  id_tarea int
+  titulo varchar(120) [not null]
+  descripcion text [not null]
+  prioridad varchar(30) [not null, default: "media"]
+  estado varchar(40) [not null, default: "abierto"]
+  fecha_reporte datetime [not null]
+  fecha_cierre datetime
+}
+
+Table historial_estados_evento {
+  id_historial int [pk, increment]
+  id_evento int [not null]
+  id_usuario int [not null]
+  estado_anterior estado_evento
+  estado_nuevo estado_evento [not null]
+  fecha_cambio datetime [not null]
+  observacion varchar(255)
+}
+
+Table pagos_referenciales {
+  id_pago int [pk, increment]
+  id_evento int [not null]
+  monto_estimado decimal(10,2) [not null]
+  estado varchar(50) [not null, default: "no_gestionado"]
+  observacion varchar(255)
+
+  Note: "Tabla solo referencial. El alcance inicial indica que no hay pagos en linea."
+}
+
+Ref: usuarios.id_rol > roles.id_rol
+
+Ref: salas.id_establecimiento > establecimientos.id_establecimiento
+Ref: horarios_disponibles.id_establecimiento > establecimientos.id_establecimiento
+
+Ref: kit_servicios.id_kit > kits_servicio.id_kit
+Ref: kit_servicios.id_servicio > servicios.id_servicio
+
+Ref: solicitudes_evento.id_cliente > clientes.id_cliente
+Ref: solicitudes_evento.id_establecimiento > establecimientos.id_establecimiento
+Ref: solicitudes_evento.id_sala > salas.id_sala
+Ref: solicitudes_evento.id_kit > kits_servicio.id_kit
+
+Ref: eventos.id_solicitud > solicitudes_evento.id_solicitud
+Ref: eventos.id_cliente > clientes.id_cliente
+Ref: eventos.id_establecimiento > establecimientos.id_establecimiento
+Ref: eventos.id_sala > salas.id_sala
+Ref: eventos.id_kit > kits_servicio.id_kit
+Ref: eventos.id_coordinador > usuarios.id_usuario
+
+Ref: personal.id_usuario > usuarios.id_usuario
+
+Ref: asignaciones_personal.id_evento > eventos.id_evento
+Ref: asignaciones_personal.id_personal > personal.id_personal
+
+Ref: tareas_evento.id_evento > eventos.id_evento
+Ref: tareas_evento.id_asignacion > asignaciones_personal.id_asignacion
+
+Ref: evento_recursos.id_evento > eventos.id_evento
+Ref: evento_recursos.id_recurso > recursos.id_recurso
+
+Ref: reglas_calculo_insumos.id_kit > kits_servicio.id_kit
+Ref: reglas_calculo_insumos.id_insumo > insumos.id_insumo
+
+Ref: minutas.id_evento > eventos.id_evento
+Ref: minutas.generada_por > usuarios.id_usuario
+
+Ref: minuta_insumos.id_minuta > minutas.id_minuta
+Ref: minuta_insumos.id_insumo > insumos.id_insumo
+
+Ref: bitacoras_evento.id_evento > eventos.id_evento
+Ref: bitacoras_evento.id_usuario > usuarios.id_usuario
+
+Ref: reportes_problema.id_evento > eventos.id_evento
+Ref: reportes_problema.id_usuario_reporta > usuarios.id_usuario
+Ref: reportes_problema.id_tarea > tareas_evento.id_tarea
+
+Ref: historial_estados_evento.id_evento > eventos.id_evento
+Ref: historial_estados_evento.id_usuario > usuarios.id_usuario
+
+Ref: pagos_referenciales.id_evento > eventos.id_evento
