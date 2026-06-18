@@ -1,0 +1,5 @@
+cl\familypark\familyparkevento\service\AsignacionRecursoService.class
+cl\familypark\familyparkevento\service\MinutaOperacionalService.class
+cl\familypark\familyparkevento\config\RestTemplateConfig.class
+cl\familypark\familyparkevento\service\AsignacionPersonalService.class
+cl\familypark\familyparkevento\exception\GlobalExceptionHandler.class
